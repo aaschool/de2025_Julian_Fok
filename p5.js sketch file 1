@@ -1,0 +1,53 @@
+let images = [];  // Store uploaded images
+let inputFile;
+let canvas;
+
+function setup() {
+  canvas = createCanvas(800, 600);
+  canvas.parent("p5Canvas");
+
+  // Create file input button
+  inputFile = createFileInput(handleFile);
+  inputFile.position(10, 10);
+  
+  // Text to instruct users
+  textSize(24);
+  textAlign(CENTER, CENTER);
+  fill(0);
+  text("Upload Photos to Share with Your Neighborhood", width / 2, height / 2 - 40);
+  
+  textSize(16);
+  text("Click to add photos", width / 2, height / 2 + 40);
+}
+
+function draw() {
+  background(255);
+  
+  // Draw all the images in the gallery (Grid View)
+  let cols = 4;
+  let spacing = 20;
+  let imgSize = (width - spacing * (cols + 1)) / cols; // Calculate image size
+  
+  for (let i = 0; i < images.length; i++) {
+    let x = spacing + (i % cols) * (imgSize + spacing);
+    let y = spacing + Math.floor(i / cols) * (imgSize + spacing);
+    image(images[i], x, y, imgSize, imgSize);
+  }
+  
+  // Display instructions
+  textSize(16);
+  text("Click on an image to view or add a story!", width / 2, height - 30);
+}
+
+// Function to handle file uploads
+function handleFile(file) {
+  if (file.type === 'image') {
+    let img = createImg(file.data, '');
+    img.hide();  // Hide the image initially as we handle it manually
+    images.push(img);
+  } else {
+    console.log('Not an image file!');
+  }
+}
+
+
