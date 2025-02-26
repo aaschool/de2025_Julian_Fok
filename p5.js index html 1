@@ -1,0 +1,13 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Photo Upload Website</title>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/p5.js/1.4.0/p5.js"></script>
+</head>
+<body>
+  <div id="p5Canvas"></div>  <!-- Placeholder for p5.js canvas -->
+  <script src="sketch.js"></script>  <!-- Your JS file with p5.js code -->
+</body>
+</html>
