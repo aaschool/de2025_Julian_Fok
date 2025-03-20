@@ -1,0 +1,86 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Neighborhood Stories Gallery</title>
+    <link rel="stylesheet" href="styles.css">
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/p5.js/1.4.0/p5.js"></script>
+    <script src="https://unpkg.com/p5.js-modal@0.3.1/modal.js"></script>
+    <script src="https://unpkg.com/leaflet@1.7.1/dist/leaflet.js"></script>
+    <link rel="stylesheet" href="https://unpkg.com/leaflet@1.7.1/dist/leaflet.css" />
+</head>
+<body>
+    <div id="app-container">
+        <header>
+            <div class="logo">Neighborhood Stories</div>
+            <div class="search-container">
+                <input type="text" id="search-input" placeholder="Search neighborhoods, stories...">
+                <button id="search-button">Search</button>
+            </div>
+            <nav>
+                <ul>
+                    <li><a href="#" class="nav-link" data-page="home">Home</a></li>
+                    <li><a href="#" class="nav-link" data-page="gallery">Gallery</a></li>
+                    <li><a href="#" class="nav-link" data-page="map">Map</a></li>
+                    <li><a href="#" class="nav-link" data-page="upload">Upload</a></li>
+                </ul>
+            </nav>
+        </header>
+        
+        <main id="main-content">
+            <!-- Content will be loaded here by p5.js -->
+        </main>
+        
+        <div id="map-container" style="display: none; width: 100%; height: 500px;"></div>
+        
+        <div id="upload-form" style="display: none;">
+            <h2>Share Your Neighborhood Story</h2>
+            <form id="story-upload-form">
+                <div class="form-group">
+                    <label for="photo-upload">Upload Photo</label>
+                    <input type="file" id="photo-upload" accept="image/*">
+                    <div id="preview-container"></div>
+                </div>
+                <div class="form-group">
+                    <label for="story-title">Title</label>
+                    <input type="text" id="story-title" placeholder="Give your story a title">
+                </div>
+                <div class="form-group">
+                    <label for="story-content">Your Story</label>
+                    <textarea id="story-content" placeholder="Share your neighborhood story..."></textarea>
+                </div>
+                <div class="form-group">
+                    <label for="neighborhood">Neighborhood</label>
+                    <input type="text" id="neighborhood" placeholder="Enter neighborhood name">
+                </div>
+                <div class="form-group">
+                    <label for="location">Location</label>
+                    <div id="location-picker-map" style="height: 200px;"></div>
+                    <input type="hidden" id="latitude">
+                    <input type="hidden" id="longitude">
+                </div>
+                <div class="form-group">
+                    <label for="tags">Tags</label>
+                    <input type="text" id="tags" placeholder="Add tags separated by commas">
+                </div>
+                <div class="form-group">
+                    <label for="privacy">Privacy Setting</label>
+                    <select id="privacy">
+                        <option value="public">Public</option>
+                        <option value="private">Private</option>
+                        <option value="shared">Shared</option>
+                    </select>
+                </div>
+                <button type="submit" id="submit-story">Submit Story</button>
+            </form>
+        </div>
+        
+        <footer>
+            <p>&copy; 2025 Neighborhood Stories Gallery</p>
+        </footer>
+    </div>
+    
+    <script src="sketch.js"></script>
+</body>
+</html>
