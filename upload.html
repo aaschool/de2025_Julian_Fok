@@ -1,0 +1,345 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Upload Story - Neighborhood Stories</title>
+  <link rel="stylesheet" href="styles.css">
+  <link rel="stylesheet" href="https://unpkg.com/leaflet@1.7.1/dist/leaflet.css" />
+  <script src="https://unpkg.com/leaflet@1.7.1/dist/leaflet.js"></script>
+  <script src="api.js"></script>
+</head>
+<body>
+  <header>
+    <nav>
+      <div class="logo">
+        <h1>Neighborhood Stories</h1>
+      </div>
+      <ul class="nav-links">
+        <li><a href="index.html">Home</a></li>
+        <li><a href="gallery.html">Gallery</a></li>
+        <li><a href="map.html">Map</a></li>
+        <li><a href="upload.html" class="active">Upload</a></li>
+        <li><a href="#" id="login-btn">Login</a></li>
+      </ul>
+    </nav>
+  </header>
+
+  <main>
+    <section class="upload-section">
+      <h2>Share Your Neighborhood Story</h2>
+      <div class="upload-container">
+        <form id="upload-form">
+          <div class="form-group">
+            <label for="title">Title</label>
+            <input type="text" id="title" name="title" required>
+          </div>
+          
+          <div class="form-group">
+            <label for="description">Story</label>
+            <textarea id="description" name="description" rows="5" required></textarea>
+          </div>
+          
+          <div class="form-group">
+            <label for="neighborhood">Neighborhood</label>
+            <input type="text" id="neighborhood" name="neighborhood" required>
+          </div>
+          
+          <div class="form-group">
+            <label for="tags">Tags (comma separated)</label>
+            <input type="text" id="tags" name="tags" placeholder="history, architecture, community">
+          </div>
+          
+          <div class="form-group">
+            <label for="privacy">Privacy</label>
+            <select id="privacy" name="privacy">
+              <option value="public">Public</option>
+              <option value="private">Private</option>
+            </select>
+          </div>
+          
+          <div class="form-group">
+            <label for="image">Photo</label>
+            <input type="file" id="image" name="image" accept="image/*" required>
+            <div id="image-preview" class="image-preview"></div>
+          </div>
+          
+          <div class="form-group">
+            <label>Location</label>
+            <div id="map" style="height: 300px;"></div>
+            <input type="hidden" id="latitude" name="latitude">
+            <input type="hidden" id="longitude" name="longitude">
+            <p class="location-info">Click on the map to set the location or use your current location</p>
+            <button type="button" id="use-current-location" class="btn-secondary">Use My Location</button>
+          </div>
+          
+          <div class="form-actions">
+            <button type="submit" class="btn-primary">Upload Story</button>
+            <button type="button" id="guest-login-btn" class="btn-secondary">Continue as Guest</button>
+          </div>
+        </form>
+      </div>
+    </section>
+  </main>
+
+  <footer>
+    <div class="footer-content">
+      <p>&copy; 2023 Neighborhood Stories. All rights reserved.</p>
+    </div>
+  </footer>
+
+  <!-- Login Modal -->
+  <div id="login-modal" class="modal">
+    <div class="modal-content">
+      <span class="close">&times;</span>
+      <div class="tabs">
+        <button class="tab-btn active" data-tab="login">Login</button>
+        <button class="tab-btn" data-tab="register">Register</button>
+      </div>
+      
+      <div id="login-tab" class="tab-content active">
+        <form id="login-form">
+          <div class="form-group">
+            <label for="login-email">Email</label>
+            <input type="email" id="login-email" name="email" required>
+          </div>
+          <div class="form-group">
+            <label for="login-password">Password</label>
+            <input type="password" id="login-password" name="password" required>
+          </div>
+          <button type="submit" class="btn-primary">Login</button>
+        </form>
+      </div>
+      
+      <div id="register-tab" class="tab-content">
+        <form id="register-form">
+          <div class="form-group">
+            <label for="register-username">Username</label>
+            <input type="text" id="register-username" name="username" required>
+          </div>
+          <div class="form-group">
+            <label for="register-email">Email</label>
+            <input type="email" id="register-email" name="email" required>
+          </div>
+          <div class="form-group">
+            <label for="register-password">Password</label>
+            <input type="password" id="register-password" name="password" required>
+          </div>
+          <button type="submit" class="btn-primary">Register</button>
+        </form>
+      </div>
+    </div>
+  </div>
+
+  <script>
+    // Initialize the map
+    let map = L.map('map').setView([40.7128, -74.0060], 13);
+    let marker;
+
+    L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
+      attribution: '&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors'
+    }).addTo(map);
+
+    // Handle map click to set location
+    map.on('click', function(e) {
+      setMarkerPosition(e.latlng.lat, e.latlng.lng);
+    });
+
+    // Set marker position and update hidden inputs
+    function setMarkerPosition(lat, lng) {
+      document.getElementById('latitude').value = lat;
+      document.getElementById('longitude').value = lng;
+      
+      if (marker) {
+        marker.setLatLng([lat, lng]);
+      } else {
+        marker = L.marker([lat, lng]).addTo(map);
+      }
+      
+      map.setView([lat, lng], 15);
+    }
+
+    // Use current location
+    document.getElementById('use-current-location').addEventListener('click', function() {
+      if (navigator.geolocation) {
+        navigator.geolocation.getCurrentPosition(function(position) {
+          setMarkerPosition(position.coords.latitude, position.coords.longitude);
+        }, function(error) {
+          alert('Error getting location: ' + error.message);
+        });
+      } else {
+        alert('Geolocation is not supported by this browser.');
+      }
+    });
+
+    // Image preview
+    document.getElementById('image').addEventListener('change', function(e) {
+      const file = e.target.files[0];
+      if (file) {
+        const reader = new FileReader();
+        reader.onload = function(event) {
+          const preview = document.getElementById('image-preview');
+          preview.innerHTML = `<img src="${event.target.result}" alt="Preview">`;
+        };
+        reader.readAsDataURL(file);
+      }
+    });
+
+    // Login modal
+    const modal = document.getElementById('login-modal');
+    const loginBtn = document.getElementById('login-btn');
+    const closeBtn = document.querySelector('.close');
+    
+    loginBtn.addEventListener('click', function() {
+      modal.style.display = 'block';
+    });
+    
+    closeBtn.addEventListener('click', function() {
+      modal.style.display = 'none';
+    });
+    
+    window.addEventListener('click', function(e) {
+      if (e.target === modal) {
+        modal.style.display = 'none';
+      }
+    });
+
+    // Tab switching
+    const tabBtns = document.querySelectorAll('.tab-btn');
+    tabBtns.forEach(btn => {
+      btn.addEventListener('click', function() {
+        const tab = this.dataset.tab;
+        
+        // Remove active class from all buttons and tabs
+        document.querySelectorAll('.tab-btn').forEach(b => b.classList.remove('active'));
+        document.querySelectorAll('.tab-content').forEach(t => t.classList.remove('active'));
+        
+        // Add active class to current button and tab
+        this.classList.add('active');
+        document.getElementById(`${tab}-tab`).classList.add('active');
+      });
+    });
+
+    // Guest login
+    document.getElementById('guest-login-btn').addEventListener('click', async function() {
+      try {
+        const result = await API.auth.guestLogin();
+        alert('Logged in as guest: ' + result.user.username);
+        updateLoginStatus(result.user);
+      } catch (error) {
+        alert('Guest login failed: ' + error.message);
+      }
+    });
+
+    // Login form
+    document.getElementById('login-form').addEventListener('submit', async function(e) {
+      e.preventDefault();
+      
+      const email = document.getElementById('login-email').value;
+      const password = document.getElementById('login-password').value;
+      
+      try {
+        const result = await API.auth.login({ email, password });
+        alert('Logged in successfully!');
+        modal.style.display = 'none';
+        updateLoginStatus(result.user);
+      } catch (error) {
+        alert('Login failed: ' + error.message);
+      }
+    });
+
+    // Register form
+    document.getElementById('register-form').addEventListener('submit', async function(e) {
+      e.preventDefault();
+      
+      const username = document.getElementById('register-username').value;
+      const email = document.getElementById('register-email').value;
+      const password = document.getElementById('register-password').value;
+      
+      try {
+        const result = await API.auth.register({ username, email, password });
+        alert('Registered successfully!');
+        modal.style.display = 'none';
+        updateLoginStatus(result.user);
+      } catch (error) {
+        alert('Registration failed: ' + error.message);
+      }
+    });
+
+    // Update login status
+    function updateLoginStatus(user) {
+      const loginBtn = document.getElementById('login-btn');
+      if (user) {
+        loginBtn.textContent = user.username;
+        loginBtn.href = 'profile.html';
+      } else {
+        loginBtn.textContent = 'Login';
+        loginBtn.href = '#';
+      }
+    }
+
+    // Check if user is already logged in
+    async function checkLoginStatus() {
+      const token = localStorage.getItem('authToken');
+      if (token) {
+        try {
+          const user = await API.auth.getCurrentUser();
+          updateLoginStatus(user);
+        } catch (error) {
+          console.error('Error checking login status:', error);
+          localStorage.removeItem('authToken');
+        }
+      }
+    }
+
+    // Upload form
+    document.getElementById('upload-form').addEventListener('submit', async function(e) {
+      e.preventDefault();
+      
+      // Check if user is logged in
+      const token = localStorage.getItem('authToken');
+      if (!token) {
+        alert('Please login or continue as guest to upload a story');
+        return;
+      }
+      
+      // Check if location is set
+      const latitude = document.getElementById('latitude').value;
+      const longitude = document.getElementById('longitude').value;
+      if (!latitude || !longitude) {
+        alert('Please set a location for your story');
+        return;
+      }
+      
+      // Get form data
+      const title = document.getElementById('title').value;
+      const description = document.getElementById('description').value;
+      const neighborhood = document.getElementById('neighborhood').value;
+      const tags = document.getElementById('tags').value;
+      const privacy = document.getElementById('privacy').value;
+      const image = document.getElementById('image').files[0];
+      
+      try {
+        const result = await API.posts.createPost({
+          title,
+          description,
+          neighborhood,
+          latitude,
+          longitude,
+          tags,
+          privacy,
+          image
+        });
+        
+        alert('Story uploaded successfully!');
+        window.location.href = 'gallery.html';
+      } catch (error) {
+        alert('Upload failed: ' + error.message);
+      }
+    });
+
+    // Check login status on page load
+    checkLoginStatus();
+  </script>
+</body>
+</html>

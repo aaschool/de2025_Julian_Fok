@@ -1,65 +1,452 @@
-    let faceMesh;
-      let video;
-      let faces = [];
-      let options = { maxFaces: 10, refineLandmarks: false, flipHorizontal: false };
-
-      let showFaceMesh = false;
-
-      function preload() {
-        // Load the faceMesh model
-        faceMesh = ml5.faceMesh(options);
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Neighborhood Stories</title>
+  <link rel="stylesheet" href="styles.css">
+  <script src="api.js"></script>
+  <style>
+    .hero-section {
+      background-color: #3498db;
+      color: white;
+      padding: 60px 20px;
+      text-align: center;
+    }
+    
+    .hero-title {
+      font-size: 2.5rem;
+      margin-bottom: 20px;
+    }
+    
+    .hero-subtitle {
+      font-size: 1.2rem;
+      margin-bottom: 30px;
+      max-width: 800px;
+      margin-left: auto;
+      margin-right: auto;
+    }
+    
+    .hero-buttons {
+      display: flex;
+      justify-content: center;
+      gap: 20px;
+      flex-wrap: wrap;
+    }
+    
+    .hero-button {
+      padding: 12px 30px;
+      border-radius: 30px;
+      font-size: 1rem;
+      font-weight: bold;
+      text-decoration: none;
+      transition: all 0.3s;
+    }
+    
+    .hero-button.primary {
+      background-color: white;
+      color: #3498db;
+    }
+    
+    .hero-button.primary:hover {
+      background-color: #f5f5f5;
+      transform: translateY(-3px);
+    }
+    
+    .hero-button.secondary {
+      background-color: transparent;
+      color: white;
+      border: 2px solid white;
+    }
+    
+    .hero-button.secondary:hover {
+      background-color: rgba(255, 255, 255, 0.1);
+      transform: translateY(-3px);
+    }
+    
+    .features-section {
+      padding: 60px 20px;
+      background-color: white;
+    }
+    
+    .section-title {
+      text-align: center;
+      font-size: 2rem;
+      margin-bottom: 50px;
+      color: #2c3e50;
+    }
+    
+    .features-container {
+      display: flex;
+      flex-wrap: wrap;
+      justify-content: center;
+      gap: 30px;
+      max-width: 1200px;
+      margin: 0 auto;
+    }
+    
+    .feature-card {
+      background-color: white;
+      border-radius: 8px;
+      box-shadow: 0 5px 15px rgba(0, 0, 0, 0.1);
+      padding: 30px;
+      width: 300px;
+      text-align: center;
+      transition: transform 0.3s, box-shadow 0.3s;
+    }
+    
+    .feature-card:hover {
+      transform: translateY(-10px);
+      box-shadow: 0 15px 30px rgba(0, 0, 0, 0.15);
+    }
+    
+    .feature-icon {
+      font-size: 3rem;
+      color: #3498db;
+      margin-bottom: 20px;
+    }
+    
+    .feature-title {
+      font-size: 1.5rem;
+      margin-bottom: 15px;
+      color: #2c3e50;
+    }
+    
+    .feature-description {
+      color: #7f8c8d;
+      line-height: 1.6;
+    }
+    
+    .featured-stories {
+      padding: 60px 20px;
+      background-color: #f9f9f9;
+    }
+    
+    .stories-container {
+      display: flex;
+      flex-wrap: wrap;
+      justify-content: center;
+      gap: 30px;
+      max-width: 1200px;
+      margin: 0 auto;
+    }
+    
+    .cta-section {
+      background-color: #2c3e50;
+      color: white;
+      padding: 60px 20px;
+      text-align: center;
+    }
+    
+    .cta-title {
+      font-size: 2rem;
+      margin-bottom: 20px;
+    }
+    
+    .cta-description {
+      font-size: 1.2rem;
+      margin-bottom: 30px;
+      max-width: 800px;
+      margin-left: auto;
+      margin-right: auto;
+    }
+    
+    @media (max-width: 768px) {
+      .hero-title {
+        font-size: 2rem;
       }
+      
+      .hero-subtitle {
+        font-size: 1rem;
+      }
+      
+      .feature-card {
+        width: 100%;
+        max-width: 350px;
+      }
+    }
+  </style>
+</head>
+<body>
+  <header>
+    <nav>
+      <div class="logo">
+        <h1>Neighborhood Stories</h1>
+      </div>
+      <ul class="nav-links">
+        <li><a href="index.html" class="active">Home</a></li>
+        <li><a href="gallery.html">Gallery</a></li>
+        <li><a href="map.html">Map</a></li>
+        <li><a href="upload.html">Upload</a></li>
+        <li><a href="#" id="login-btn">Login</a></li>
+      </ul>
+    </nav>
+  </header>
 
-      function setup() {
-        createCanvas(640, 480);
-        // Create the webcam video and hide it
-        video = createCapture(VIDEO);
-        video.size(640, 480);
-        video.hide();
-        // Start detecting faces from the webcam video
-        faceMesh.detectStart(video, gotFaces);
+  <main>
+    <section class="hero-section">
+      <h1 class="hero-title">Share Your Neighborhood's Story</h1>
+      <p class="hero-subtitle">Discover and share the unique stories, history, and culture that make your neighborhood special. Connect with your community through photos and narratives.</p>
+      <div class="hero-buttons">
+        <a href="gallery.html" class="hero-button primary">Explore Stories</a>
+        <a href="upload.html" class="hero-button secondary">Share Your Story</a>
+      </div>
+    </section>
+    
+    <section class="features-section">
+      <h2 class="section-title">How It Works</h2>
+      <div class="features-container">
+        <div class="feature-card">
+          <div class="feature-icon">📸</div>
+          <h3 class="feature-title">Capture</h3>
+          <p class="feature-description">Take photos of interesting places, buildings, or events in your neighborhood that tell a story about your community.</p>
+        </div>
+        
+        <div class="feature-card">
+          <div class="feature-icon">📝</div>
+          <h3 class="feature-title">Share</h3>
+          <p class="feature-description">Upload your photos along with stories, memories, or historical information about the location.</p>
+        </div>
+        
+        <div class="feature-card">
+          <div class="feature-icon">🗺️</div>
+          <h3 class="feature-title">Explore</h3>
+          <p class="feature-description">Discover stories from your neighborhood and others through our interactive map and gallery views.</p>
+        </div>
+      </div>
+    </section>
+    
+    <section class="featured-stories">
+      <h2 class="section-title">Featured Stories</h2>
+      <div class="stories-container" id="featured-stories-container">
+        <!-- Featured stories will be loaded here -->
+        <div class="loading">Loading featured stories...</div>
+      </div>
+    </section>
+    
+    <section class="cta-section">
+      <h2 class="cta-title">Join Our Community</h2>
+      <p class="cta-description">Sign up today to share your neighborhood stories and connect with others who are passionate about preserving local history and culture.</p>
+      <div class="hero-buttons">
+        <a href="upload.html" class="hero-button primary">Share Your Story</a>
+        <button id="guest-login-btn" class="hero-button secondary">Continue as Guest</button>
+      </div>
+    </section>
+  </main>
 
-         document.addEventListener('keydown', (event) => {
-          if (event.key === 'f') {
-            showFaceMesh = !showFaceMesh;
-          } else if (event.key === 'b') {
-            showBodyMesh = !showBodyMesh;
-          }
+  <footer>
+    <div class="footer-content">
+      <p>&copy; 2023 Neighborhood Stories. All rights reserved.</p>
+    </div>
+  </footer>
+
+  <!-- Login Modal -->
+  <div id="login-modal" class="modal">
+    <div class="modal-content">
+      <span class="close">&times;</span>
+      <div class="tabs">
+        <button class="tab-btn active" data-tab="login">Login</button>
+        <button class="tab-btn" data-tab="register">Register</button>
+      </div>
+      
+      <div id="login-tab" class="tab-content active">
+        <form id="login-form">
+          <div class="form-group">
+            <label for="login-email">Email</label>
+            <input type="email" id="login-email" name="email" required>
+          </div>
+          <div class="form-group">
+            <label for="login-password">Password</label>
+            <input type="password" id="login-password" name="password" required>
+          </div>
+          <button type="submit" class="btn-primary">Login</button>
+        </form>
+      </div>
+      
+      <div id="register-tab" class="tab-content">
+        <form id="register-form">
+          <div class="form-group">
+            <label for="register-username">Username</label>
+            <input type="text" id="register-username" name="username" required>
+          </div>
+          <div class="form-group">
+            <label for="register-email">Email</label>
+            <input type="email" id="register-email" name="email" required>
+          </div>
+          <div class="form-group">
+            <label for="register-password">Password</label>
+            <input type="password" id="register-password" name="password" required>
+          </div>
+          <button type="submit" class="btn-primary">Register</button>
+        </form>
+      </div>
+    </div>
+  </div>
+
+  <script>
+    // DOM Elements
+    const featuredStoriesContainer = document.getElementById('featured-stories-container');
+    const loginModal = document.getElementById('login-modal');
+    const loginBtn = document.getElementById('login-btn');
+    const guestLoginBtn = document.getElementById('guest-login-btn');
+    const closeBtn = document.querySelector('.close');
+    
+    // Load featured stories
+    async function loadFeaturedStories() {
+      try {
+        // Fetch all posts
+        const posts = await API.posts.getAllPosts();
+        
+        // Select up to 3 posts for featured section
+        const featuredPosts = posts.slice(0, 3);
+        
+        // Clear container
+        featuredStoriesContainer.innerHTML = '';
+        
+        if (featuredPosts.length === 0) {
+          featuredStoriesContainer.innerHTML = '<div class="no-stories">No stories available yet. Be the first to share!</div>';
+          return;
+        }
+        
+        // Display featured posts
+        featuredPosts.forEach(post => {
+          const storyCard = document.createElement('div');
+          storyCard.className = 'gallery-item';
+          
+          storyCard.innerHTML = `
+            <img src="${post.image}" alt="${post.title}">
+            <div class="gallery-item-info">
+              <div class="gallery-item-title">${post.title}</div>
+              <div class="gallery-item-neighborhood">${post.neighborhood}</div>
+              <div class="gallery-item-description">${post.description}</div>
+              <a href="gallery.html" class="btn-secondary" style="display: inline-block; margin-top: 15px;">View More</a>
+            </div>
+          `;
+          
+          featuredStoriesContainer.appendChild(storyCard);
         });
+      } catch (error) {
+        console.error('Error loading featured stories:', error);
+        featuredStoriesContainer.innerHTML = `<div class="error">Error loading stories: ${error.message}</div>`;
       }
-
-      function draw() {
-        // Draw the webcam video
-        image(video, 0, 0, width, height);
-
-
-        // Show face mesh if 'f' is pressed
-          if (showFaceMesh) {
-            // Draw all the tracked face points
-          for (let i = 0; i < faces.length; i++) {
-            let face = faces[i];
-            for (let j = 0; j < face.keypoints.length; j++) {
-              let keypoint = face.keypoints[j];
-              fill(0, 255, 0);
-              noStroke();
-              circle(keypoint.x, keypoint.y, 5);
-            }
-          }
-          }
-
-          fill(255);
-        textSize(24);
-        textAlign(LEFT, TOP);
-        text(`Faces: ${faces.length}`, 10, 10);
-        text(`Face Mesh (f): ${showFaceMesh}`, 10, 40);
-
+    }
+    
+    // Guest login
+    async function handleGuestLogin() {
+      try {
+        const result = await API.auth.guestLogin();
+        alert('Logged in as guest: ' + result.user.username);
+        updateLoginStatus(result.user);
+        window.location.href = 'upload.html';
+      } catch (error) {
+        alert('Guest login failed: ' + error.message);
       }
-
-      // Callback function for when faceMesh outputs data
-      function gotFaces(results) {
-        // Save the output to the faces variable
-        faces = results;
+    }
+    
+    // Update login status
+    function updateLoginStatus(user) {
+      if (user) {
+        loginBtn.textContent = user.username;
+        loginBtn.href = 'profile.html';
+      } else {
+        loginBtn.textContent = 'Login';
+        loginBtn.href = '#';
       }
-    </script>
-  </body>
+    }
+    
+    // Check if user is already logged in
+    async function checkLoginStatus() {
+      const token = localStorage.getItem('authToken');
+      if (token) {
+        try {
+          const user = await API.auth.getCurrentUser();
+          updateLoginStatus(user);
+        } catch (error) {
+          console.error('Error checking login status:', error);
+          localStorage.removeItem('authToken');
+        }
+      }
+    }
+    
+    // Event Listeners
+    
+    // Login button
+    loginBtn.addEventListener('click', function(e) {
+      e.preventDefault();
+      loginModal.style.display = 'block';
+    });
+    
+    // Guest login button
+    guestLoginBtn.addEventListener('click', handleGuestLogin);
+    
+    // Close button
+    closeBtn.addEventListener('click', function() {
+      loginModal.style.display = 'none';
+    });
+    
+    // Close modal when clicking outside
+    window.addEventListener('click', function(e) {
+      if (e.target === loginModal) {
+        loginModal.style.display = 'none';
+      }
+    });
+    
+    // Tab switching
+    const tabBtns = document.querySelectorAll('.tab-btn');
+    tabBtns.forEach(btn => {
+      btn.addEventListener('click', function() {
+        const tab = this.dataset.tab;
+        
+        // Remove active class from all buttons and tabs
+        document.querySelectorAll('.tab-btn').forEach(b => b.classList.remove('active'));
+        document.querySelectorAll('.tab-content').forEach(t => t.classList.remove('active'));
+        
+        // Add active class to current button and tab
+        this.classList.add('active');
+        document.getElementById(`${tab}-tab`).classList.add('active');
+      });
+    });
+    
+    // Login form
+    document.getElementById('login-form').addEventListener('submit', async function(e) {
+      e.preventDefault();
+      
+      const email = document.getElementById('login-email').value;
+      const password = document.getElementById('login-password').value;
+      
+      try {
+        const result = await API.auth.login({ email, password });
+        alert('Logged in successfully!');
+        loginModal.style.display = 'none';
+        updateLoginStatus(result.user);
+      } catch (error) {
+        alert('Login failed: ' + error.message);
+      }
+    });
+    
+    // Register form
+    document.getElementById('register-form').addEventListener('submit', async function(e) {
+      e.preventDefault();
+      
+      const username = document.getElementById('register-username').value;
+      const email = document.getElementById('register-email').value;
+      const password = document.getElementById('register-password').value;
+      
+      try {
+        const result = await API.auth.register({ username, email, password });
+        alert('Registered successfully!');
+        loginModal.style.display = 'none';
+        updateLoginStatus(result.user);
+      } catch (error) {
+        alert('Registration failed: ' + error.message);
+      }
+    });
+    
+    // Initialize page
+    document.addEventListener('DOMContentLoaded', function() {
+      loadFeaturedStories();
+      checkLoginStatus();
+    });
+  </script>
+</body>
 </html>

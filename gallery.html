@@ -1,0 +1,536 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Gallery - Neighborhood Stories</title>
+  <link rel="stylesheet" href="styles.css">
+  <script src="api.js"></script>
+</head>
+<body>
+  <header>
+    <nav>
+      <div class="logo">
+        <h1>Neighborhood Stories</h1>
+      </div>
+      <ul class="nav-links">
+        <li><a href="index.html">Home</a></li>
+        <li><a href="gallery.html" class="active">Gallery</a></li>
+        <li><a href="map.html">Map</a></li>
+        <li><a href="upload.html">Upload</a></li>
+        <li><a href="#" id="login-btn">Login</a></li>
+      </ul>
+    </nav>
+  </header>
+
+  <main>
+    <section class="gallery-section">
+      <div class="gallery-controls">
+        <div class="view-options">
+          <button class="view-btn active" data-view="grid">Grid View</button>
+          <button class="view-btn" data-view="list">List View</button>
+        </div>
+        <div class="filter-options">
+          <select id="neighborhood-filter">
+            <option value="">All Neighborhoods</option>
+            <!-- Neighborhoods will be populated dynamically -->
+          </select>
+        </div>
+      </div>
+      
+      <div class="gallery-container" id="gallery-container">
+        <!-- Gallery items will be loaded here -->
+        <div class="loading">Loading stories...</div>
+      </div>
+      
+      <div class="pagination">
+        <button id="load-more" class="btn-secondary">Load More</button>
+      </div>
+    </section>
+  </main>
+
+  <footer>
+    <div class="footer-content">
+      <p>&copy; 2023 Neighborhood Stories. All rights reserved.</p>
+    </div>
+  </footer>
+
+  <!-- Story Detail Modal -->
+  <div id="story-modal" class="modal">
+    <div class="modal-content story-modal-content">
+      <span class="close">&times;</span>
+      <div id="story-detail-container">
+        <!-- Story details will be loaded here -->
+      </div>
+    </div>
+  </div>
+
+  <!-- Login Modal -->
+  <div id="login-modal" class="modal">
+    <div class="modal-content">
+      <span class="close">&times;</span>
+      <div class="tabs">
+        <button class="tab-btn active" data-tab="login">Login</button>
+        <button class="tab-btn" data-tab="register">Register</button>
+      </div>
+      
+      <div id="login-tab" class="tab-content active">
+        <form id="login-form">
+          <div class="form-group">
+            <label for="login-email">Email</label>
+            <input type="email" id="login-email" name="email" required>
+          </div>
+          <div class="form-group">
+            <label for="login-password">Password</label>
+            <input type="password" id="login-password" name="password" required>
+          </div>
+          <button type="submit" class="btn-primary">Login</button>
+        </form>
+      </div>
+      
+      <div id="register-tab" class="tab-content">
+        <form id="register-form">
+          <div class="form-group">
+            <label for="register-username">Username</label>
+            <input type="text" id="register-username" name="username" required>
+          </div>
+          <div class="form-group">
+            <label for="register-email">Email</label>
+            <input type="email" id="register-email" name="email" required>
+          </div>
+          <div class="form-group">
+            <label for="register-password">Password</label>
+            <input type="password" id="register-password" name="password" required>
+          </div>
+          <button type="submit" class="btn-primary">Register</button>
+        </form>
+      </div>
+    </div>
+  </div>
+
+  <script>
+    // Global variables
+    let currentView = 'grid';
+    let currentNeighborhood = '';
+    let currentPage = 1;
+    let allPosts = [];
+    let neighborhoods = new Set();
+    
+    // DOM Elements
+    const galleryContainer = document.getElementById('gallery-container');
+    const neighborhoodFilter = document.getElementById('neighborhood-filter');
+    const loadMoreBtn = document.getElementById('load-more');
+    const viewBtns = document.querySelectorAll('.view-btn');
+    const storyModal = document.getElementById('story-modal');
+    const storyDetailContainer = document.getElementById('story-detail-container');
+    const loginModal = document.getElementById('login-modal');
+    const loginBtn = document.getElementById('login-btn');
+    const closeBtns = document.querySelectorAll('.close');
+    
+    // Initialize the gallery
+    async function initGallery() {
+      try {
+        // Fetch all posts
+        allPosts = await API.posts.getAllPosts();
+        
+        // Extract unique neighborhoods
+        allPosts.forEach(post => {
+          if (post.neighborhood) {
+            neighborhoods.add(post.neighborhood);
+          }
+        });
+        
+        // Populate neighborhood filter
+        populateNeighborhoodFilter();
+        
+        // Display posts
+        displayPosts();
+        
+        // Check login status
+        checkLoginStatus();
+      } catch (error) {
+        console.error('Error initializing gallery:', error);
+        galleryContainer.innerHTML = `<div class="error">Error loading stories: ${error.message}</div>`;
+      }
+    }
+    
+    // Populate neighborhood filter
+    function populateNeighborhoodFilter() {
+      neighborhoods.forEach(neighborhood => {
+        const option = document.createElement('option');
+        option.value = neighborhood;
+        option.textContent = neighborhood;
+        neighborhoodFilter.appendChild(option);
+      });
+    }
+    
+    // Display posts based on current view and filters
+    function displayPosts() {
+      // Clear gallery container
+      galleryContainer.innerHTML = '';
+      
+      // Filter posts by neighborhood if selected
+      let filteredPosts = allPosts;
+      if (currentNeighborhood) {
+        filteredPosts = allPosts.filter(post => post.neighborhood === currentNeighborhood);
+      }
+      
+      // Limit posts based on pagination
+      const postsToShow = filteredPosts.slice(0, currentPage * 12);
+      
+      // Hide load more button if all posts are shown
+      if (postsToShow.length === filteredPosts.length) {
+        loadMoreBtn.style.display = 'none';
+      } else {
+        loadMoreBtn.style.display = 'block';
+      }
+      
+      // Display posts based on current view
+      if (currentView === 'grid') {
+        displayGridView(postsToShow);
+      } else {
+        displayListView(postsToShow);
+      }
+    }
+    
+    // Display posts in grid view
+    function displayGridView(posts) {
+      galleryContainer.className = 'gallery-container grid-view';
+      
+      posts.forEach(post => {
+        const galleryItem = document.createElement('div');
+        galleryItem.className = 'gallery-item';
+        galleryItem.dataset.id = post.id;
+        
+        galleryItem.innerHTML = `
+          <img src="${post.image}" alt="${post.title}">
+          <div class="gallery-item-info">
+            <div class="gallery-item-title">${post.title}</div>
+            <div class="gallery-item-neighborhood">${post.neighborhood}</div>
+            <div class="gallery-item-description">${post.description}</div>
+            <div class="interaction-bar">
+              <button class="interaction-button like-btn" data-id="${post.id}">
+                <i class="fas fa-heart"></i> <span>${post.likes || 0}</span>
+              </button>
+              <button class="interaction-button comment-btn" data-id="${post.id}">
+                <i class="fas fa-comment"></i> <span>${post.comments ? post.comments.length : 0}</span>
+              </button>
+            </div>
+          </div>
+        `;
+        
+        galleryContainer.appendChild(galleryItem);
+        
+        // Add click event to open modal
+        galleryItem.addEventListener('click', () => openStoryModal(post.id));
+      });
+    }
+    
+    // Display posts in list view
+    function displayListView(posts) {
+      galleryContainer.className = 'gallery-container list-view';
+      
+      posts.forEach(post => {
+        const galleryItem = document.createElement('div');
+        galleryItem.className = 'gallery-item list-item';
+        galleryItem.dataset.id = post.id;
+        
+        galleryItem.innerHTML = `
+          <div class="list-item-image">
+            <img src="${post.image}" alt="${post.title}">
+          </div>
+          <div class="list-item-info">
+            <div class="gallery-item-title">${post.title}</div>
+            <div class="gallery-item-neighborhood">${post.neighborhood}</div>
+            <div class="gallery-item-description">${post.description}</div>
+            <div class="interaction-bar">
+              <button class="interaction-button like-btn" data-id="${post.id}">
+                <i class="fas fa-heart"></i> <span>${post.likes || 0}</span>
+              </button>
+              <button class="interaction-button comment-btn" data-id="${post.id}">
+                <i class="fas fa-comment"></i> <span>${post.comments ? post.comments.length : 0}</span>
+              </button>
+            </div>
+          </div>
+        `;
+        
+        galleryContainer.appendChild(galleryItem);
+        
+        // Add click event to open modal
+        galleryItem.addEventListener('click', () => openStoryModal(post.id));
+      });
+    }
+    
+    // Open story modal
+    async function openStoryModal(postId) {
+      try {
+        // Show loading state
+        storyDetailContainer.innerHTML = '<div class="loading">Loading story details...</div>';
+        storyModal.style.display = 'block';
+        
+        // Fetch post details
+        const post = await API.posts.getPostById(postId);
+        
+        // Format date
+        const date = new Date(post.date).toLocaleDateString();
+        
+        // Create tags HTML
+        const tagsHtml = post.tags && post.tags.length > 0
+          ? `<div class="story-detail-tags">${post.tags.map(tag => `<span class="tag">${tag}</span>`).join('')}</div>`
+          : '';
+        
+        // Create comments HTML
+        const commentsHtml = post.comments && post.comments.length > 0
+          ? post.comments.map(comment => `
+              <div class="comment">
+                <div class="comment-author">${comment.author}</div>
+                <div class="comment-text">${comment.text}</div>
+                <div class="comment-date">${new Date(comment.date).toLocaleDateString()}</div>
+              </div>
+            `).join('')
+          : '<div class="no-comments">No comments yet</div>';
+        
+        // Display post details
+        storyDetailContainer.innerHTML = `
+          <div class="story-detail-container">
+            <img src="${post.image}" alt="${post.title}" class="story-detail-image">
+            <div class="story-detail-content">
+              <h2 class="story-detail-title">${post.title}</h2>
+              <div class="story-detail-meta">
+                <div class="story-detail-author">By ${post.author}</div>
+                <div class="story-detail-date">${date}</div>
+                <div class="story-detail-neighborhood">${post.neighborhood}</div>
+              </div>
+              <div class="story-detail-text">${post.description}</div>
+              ${tagsHtml}
+              <div class="story-detail-actions">
+                <button class="btn-secondary like-btn" data-id="${post.id}">
+                  <i class="fas fa-heart"></i> Like (${post.likes || 0})
+                </button>
+              </div>
+              <div class="comments-section">
+                <h3>Comments (${post.comments ? post.comments.length : 0})</h3>
+                <div class="comments-list">
+                  ${commentsHtml}
+                </div>
+                <div class="add-comment">
+                  <textarea id="comment-text" placeholder="Add a comment..."></textarea>
+                  <button class="btn-primary" id="submit-comment" data-id="${post.id}">Post Comment</button>
+                </div>
+              </div>
+            </div>
+          </div>
+        `;
+        
+        // Add event listener for like button
+        document.querySelector('.story-detail-actions .like-btn').addEventListener('click', async (e) => {
+          const postId = e.target.closest('.like-btn').dataset.id;
+          try {
+            const result = await API.posts.likePost(postId);
+            e.target.closest('.like-btn').innerHTML = `<i class="fas fa-heart"></i> Like (${result.likes})`;
+            
+            // Update post in allPosts array
+            const postIndex = allPosts.findIndex(p => p.id === postId);
+            if (postIndex !== -1) {
+              allPosts[postIndex].likes = result.likes;
+            }
+            
+            // Refresh gallery
+            displayPosts();
+          } catch (error) {
+            alert('Error liking post: ' + error.message);
+          }
+        });
+        
+        // Add event listener for comment button
+        document.getElementById('submit-comment').addEventListener('click', async (e) => {
+          const postId = e.target.dataset.id;
+          const commentText = document.getElementById('comment-text').value.trim();
+          
+          if (!commentText) {
+            alert('Please enter a comment');
+            return;
+          }
+          
+          // Check if user is logged in
+          const token = localStorage.getItem('authToken');
+          if (!token) {
+            alert('Please login to comment');
+            loginModal.style.display = 'block';
+            return;
+          }
+          
+          try {
+            const result = await API.posts.addComment(postId, commentText);
+            
+            // Clear comment text
+            document.getElementById('comment-text').value = '';
+            
+            // Update comments list
+            const commentsList = document.querySelector('.comments-list');
+            commentsList.innerHTML = result.comments.map(comment => `
+              <div class="comment">
+                <div class="comment-author">${comment.author}</div>
+                <div class="comment-text">${comment.text}</div>
+                <div class="comment-date">${new Date(comment.date).toLocaleDateString()}</div>
+              </div>
+            `).join('');
+            
+            // Update comment count
+            document.querySelector('.comments-section h3').textContent = `Comments (${result.comments.length})`;
+            
+            // Update post in allPosts array
+            const postIndex = allPosts.findIndex(p => p.id === postId);
+            if (postIndex !== -1) {
+              allPosts[postIndex].comments = result.comments;
+            }
+            
+            // Refresh gallery
+            displayPosts();
+          } catch (error) {
+            alert('Error adding comment: ' + error.message);
+          }
+        });
+      } catch (error) {
+        console.error('Error opening story modal:', error);
+        storyDetailContainer.innerHTML = `<div class="error">Error loading story details: ${error.message}</div>`;
+      }
+    }
+    
+    // Event Listeners
+    
+    // View buttons
+    viewBtns.forEach(btn => {
+      btn.addEventListener('click', function() {
+        // Remove active class from all buttons
+        viewBtns.forEach(b => b.classList.remove('active'));
+        
+        // Add active class to clicked button
+        this.classList.add('active');
+        
+        // Update current view
+        currentView = this.dataset.view;
+        
+        // Display posts with new view
+        displayPosts();
+      });
+    });
+    
+    // Neighborhood filter
+    neighborhoodFilter.addEventListener('change', function() {
+      currentNeighborhood = this.value;
+      currentPage = 1;
+      displayPosts();
+    });
+    
+    // Load more button
+    loadMoreBtn.addEventListener('click', function() {
+      currentPage++;
+      displayPosts();
+    });
+    
+    // Close buttons for modals
+    closeBtns.forEach(btn => {
+      btn.addEventListener('click', function() {
+        storyModal.style.display = 'none';
+        loginModal.style.display = 'none';
+      });
+    });
+    
+    // Close modals when clicking outside
+    window.addEventListener('click', function(e) {
+      if (e.target === storyModal) {
+        storyModal.style.display = 'none';
+      }
+      if (e.target === loginModal) {
+        loginModal.style.display = 'none';
+      }
+    });
+    
+    // Login button
+    loginBtn.addEventListener('click', function() {
+      loginModal.style.display = 'block';
+    });
+    
+    // Tab switching
+    const tabBtns = document.querySelectorAll('.tab-btn');
+    tabBtns.forEach(btn => {
+      btn.addEventListener('click', function() {
+        const tab = this.dataset.tab;
+        
+        // Remove active class from all buttons and tabs
+        document.querySelectorAll('.tab-btn').forEach(b => b.classList.remove('active'));
+        document.querySelectorAll('.tab-content').forEach(t => t.classList.remove('active'));
+        
+        // Add active class to current button and tab
+        this.classList.add('active');
+        document.getElementById(`${tab}-tab`).classList.add('active');
+      });
+    });
+    
+    // Login form
+    document.getElementById('login-form').addEventListener('submit', async function(e) {
+      e.preventDefault();
+      
+      const email = document.getElementById('login-email').value;
+      const password = document.getElementById('login-password').value;
+      
+      try {
+        const result = await API.auth.login({ email, password });
+        alert('Logged in successfully!');
+        loginModal.style.display = 'none';
+        updateLoginStatus(result.user);
+      } catch (error) {
+        alert('Login failed: ' + error.message);
+      }
+    });
+    
+    // Register form
+    document.getElementById('register-form').addEventListener('submit', async function(e) {
+      e.preventDefault();
+      
+      const username = document.getElementById('register-username').value;
+      const email = document.getElementById('register-email').value;
+      const password = document.getElementById('register-password').value;
+      
+      try {
+        const result = await API.auth.register({ username, email, password });
+        alert('Registered successfully!');
+        loginModal.style.display = 'none';
+        updateLoginStatus(result.user);
+      } catch (error) {
+        alert('Registration failed: ' + error.message);
+      }
+    });
+    
+    // Update login status
+    function updateLoginStatus(user) {
+      const loginBtn = document.getElementById('login-btn');
+      if (user) {
+        loginBtn.textContent = user.username;
+        loginBtn.href = 'profile.html';
+      } else {
+        loginBtn.textContent = 'Login';
+        loginBtn.href = '#';
+      }
+    }
+    
+    // Check if user is already logged in
+    async function checkLoginStatus() {
+      const token = localStorage.getItem('authToken');
+      if (token) {
+        try {
+          const user = await API.auth.getCurrentUser();
+          updateLoginStatus(user);
+        } catch (error) {
+          console.error('Error checking login status:', error);
+          localStorage.removeItem('authToken');
+        }
+      }
+    }
+    
+    // Initialize gallery on page load
+    document.addEventListener('DOMContentLoaded', initGallery);
+  </script>
+</body>
+</html>

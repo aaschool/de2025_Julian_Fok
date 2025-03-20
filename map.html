@@ -1,0 +1,595 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Map View - Neighborhood Stories</title>
+  <link rel="stylesheet" href="styles.css">
+  <link rel="stylesheet" href="https://unpkg.com/leaflet@1.7.1/dist/leaflet.css" />
+  <script src="https://unpkg.com/leaflet@1.7.1/dist/leaflet.js"></script>
+  <script src="api.js"></script>
+  <style>
+    #map-container {
+      height: 70vh;
+      width: 100%;
+      margin: 20px 0;
+      border-radius: 8px;
+      overflow: hidden;
+      box-shadow: 0 2px 10px rgba(0, 0, 0, 0.1);
+    }
+    
+    .map-controls {
+      display: flex;
+      justify-content: space-between;
+      margin-bottom: 20px;
+      flex-wrap: wrap;
+    }
+    
+    .map-filter {
+      display: flex;
+      gap: 10px;
+      align-items: center;
+    }
+    
+    .radius-slider {
+      width: 200px;
+    }
+    
+    .map-section {
+      padding: 20px;
+      max-width: 1200px;
+      margin: 0 auto;
+    }
+    
+    .map-section h2 {
+      margin-bottom: 20px;
+      color: #2c3e50;
+    }
+    
+    .custom-popup .leaflet-popup-content-wrapper {
+      background-color: white;
+      border-radius: 8px;
+      overflow: hidden;
+      box-shadow: 0 2px 10px rgba(0, 0, 0, 0.2);
+      padding: 0;
+      width: 250px;
+    }
+    
+    .custom-popup .leaflet-popup-content {
+      margin: 0;
+      width: 100% !important;
+    }
+    
+    .popup-content {
+      padding: 15px;
+    }
+    
+    .popup-image {
+      width: 100%;
+      height: 150px;
+      object-fit: cover;
+    }
+    
+    .popup-title {
+      font-weight: bold;
+      margin: 10px 0 5px;
+      font-size: 16px;
+    }
+    
+    .popup-neighborhood {
+      color: #7f8c8d;
+      font-size: 14px;
+      margin-bottom: 10px;
+    }
+    
+    .popup-description {
+      font-size: 14px;
+      line-height: 1.4;
+      display: -webkit-box;
+      -webkit-line-clamp: 3;
+      -webkit-box-orient: vertical;
+      overflow: hidden;
+      margin-bottom: 10px;
+    }
+    
+    .popup-button {
+      display: block;
+      width: 100%;
+      padding: 8px;
+      background-color: #3498db;
+      color: white;
+      border: none;
+      border-radius: 4px;
+      text-align: center;
+      cursor: pointer;
+      text-decoration: none;
+      font-size: 14px;
+    }
+  </style>
+</head>
+<body>
+  <header>
+    <nav>
+      <div class="logo">
+        <h1>Neighborhood Stories</h1>
+      </div>
+      <ul class="nav-links">
+        <li><a href="index.html">Home</a></li>
+        <li><a href="gallery.html">Gallery</a></li>
+        <li><a href="map.html" class="active">Map</a></li>
+        <li><a href="upload.html">Upload</a></li>
+        <li><a href="#" id="login-btn">Login</a></li>
+      </ul>
+    </nav>
+  </header>
+
+  <main>
+    <section class="map-section">
+      <h2>Explore Stories by Location</h2>
+      
+      <div class="map-controls">
+        <div class="map-filter">
+          <label for="radius-slider">Search Radius: <span id="radius-value">10</span> km</label>
+          <input type="range" id="radius-slider" class="radius-slider" min="1" max="50" value="10">
+        </div>
+        <div class="map-buttons">
+          <button id="use-current-location" class="btn-secondary">Use My Location</button>
+        </div>
+      </div>
+      
+      <div id="map-container"></div>
+      
+      <div id="stories-count" class="stories-count">
+        Showing 0 stories in this area
+      </div>
+    </section>
+  </main>
+
+  <footer>
+    <div class="footer-content">
+      <p>&copy; 2023 Neighborhood Stories. All rights reserved.</p>
+    </div>
+  </footer>
+
+  <!-- Story Detail Modal -->
+  <div id="story-modal" class="modal">
+    <div class="modal-content story-modal-content">
+      <span class="close">&times;</span>
+      <div id="story-detail-container">
+        <!-- Story details will be loaded here -->
+      </div>
+    </div>
+  </div>
+
+  <!-- Login Modal -->
+  <div id="login-modal" class="modal">
+    <div class="modal-content">
+      <span class="close">&times;</span>
+      <div class="tabs">
+        <button class="tab-btn active" data-tab="login">Login</button>
+        <button class="tab-btn" data-tab="register">Register</button>
+      </div>
+      
+      <div id="login-tab" class="tab-content active">
+        <form id="login-form">
+          <div class="form-group">
+            <label for="login-email">Email</label>
+            <input type="email" id="login-email" name="email" required>
+          </div>
+          <div class="form-group">
+            <label for="login-password">Password</label>
+            <input type="password" id="login-password" name="password" required>
+          </div>
+          <button type="submit" class="btn-primary">Login</button>
+        </form>
+      </div>
+      
+      <div id="register-tab" class="tab-content">
+        <form id="register-form">
+          <div class="form-group">
+            <label for="register-username">Username</label>
+            <input type="text" id="register-username" name="username" required>
+          </div>
+          <div class="form-group">
+            <label for="register-email">Email</label>
+            <input type="email" id="register-email" name="email" required>
+          </div>
+          <div class="form-group">
+            <label for="register-password">Password</label>
+            <input type="password" id="register-password" name="password" required>
+          </div>
+          <button type="submit" class="btn-primary">Register</button>
+        </form>
+      </div>
+    </div>
+  </div>
+
+  <script>
+    // Global variables
+    let map;
+    let currentRadius = 10; // in km
+    let currentLat = 40.7128; // Default to New York
+    let currentLng = -74.0060;
+    let markers = [];
+    let circle;
+    
+    // DOM Elements
+    const mapContainer = document.getElementById('map-container');
+    const radiusSlider = document.getElementById('radius-slider');
+    const radiusValue = document.getElementById('radius-value');
+    const useCurrentLocationBtn = document.getElementById('use-current-location');
+    const storiesCount = document.getElementById('stories-count');
+    const storyModal = document.getElementById('story-modal');
+    const storyDetailContainer = document.getElementById('story-detail-container');
+    const loginModal = document.getElementById('login-modal');
+    const loginBtn = document.getElementById('login-btn');
+    const closeBtns = document.querySelectorAll('.close');
+    
+    // Initialize the map
+    function initMap() {
+      // Create map
+      map = L.map('map-container').setView([currentLat, currentLng], 13);
+      
+      // Add tile layer
+      L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
+        attribution: '&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors'
+      }).addTo(map);
+      
+      // Add search radius circle
+      circle = L.circle([currentLat, currentLng], {
+        color: '#3498db',
+        fillColor: '#3498db',
+        fillOpacity: 0.1,
+        radius: currentRadius * 1000 // Convert km to meters
+      }).addTo(map);
+      
+      // Load stories based on current location
+      loadStoriesByLocation();
+      
+      // Add event listener for map click
+      map.on('click', function(e) {
+        updateLocation(e.latlng.lat, e.latlng.lng);
+      });
+      
+      // Check login status
+      checkLoginStatus();
+    }
+    
+    // Load stories by location
+    async function loadStoriesByLocation() {
+      try {
+        // Clear existing markers
+        clearMarkers();
+        
+        // Convert radius to meters
+        const radiusInMeters = currentRadius * 1000;
+        
+        // Fetch posts by location
+        const posts = await API.posts.getPostsByLocation(currentLat, currentLng, radiusInMeters);
+        
+        // Update stories count
+        storiesCount.textContent = `Showing ${posts.length} stories in this area`;
+        
+        // Add markers for each post
+        posts.forEach(post => {
+          addMarker(post);
+        });
+      } catch (error) {
+        console.error('Error loading stories by location:', error);
+        storiesCount.textContent = `Error loading stories: ${error.message}`;
+      }
+    }
+    
+    // Add marker for a post
+    function addMarker(post) {
+      const marker = L.marker([post.location.lat, post.location.lng]).addTo(map);
+      
+      // Create popup content
+      const popupContent = `
+        <div class="popup-content">
+          <img src="${post.image}" alt="${post.title}" class="popup-image">
+          <div class="popup-title">${post.title}</div>
+          <div class="popup-neighborhood">${post.neighborhood}</div>
+          <div class="popup-description">${post.description}</div>
+          <button class="popup-button view-story" data-id="${post.id}">View Story</button>
+        </div>
+      `;
+      
+      // Add popup to marker
+      marker.bindPopup(popupContent, {
+        className: 'custom-popup',
+        maxWidth: 300
+      });
+      
+      // Add event listener for view story button
+      marker.on('popupopen', function() {
+        document.querySelector('.view-story').addEventListener('click', function() {
+          openStoryModal(this.dataset.id);
+        });
+      });
+      
+      // Add marker to array
+      markers.push(marker);
+    }
+    
+    // Clear all markers
+    function clearMarkers() {
+      markers.forEach(marker => {
+        map.removeLayer(marker);
+      });
+      markers = [];
+    }
+    
+    // Update location
+    function updateLocation(lat, lng) {
+      currentLat = lat;
+      currentLng = lng;
+      
+      // Update circle position
+      circle.setLatLng([lat, lng]);
+      
+      // Center map on new location
+      map.setView([lat, lng], 13);
+      
+      // Load stories for new location
+      loadStoriesByLocation();
+    }
+    
+    // Open story modal
+    async function openStoryModal(postId) {
+      try {
+        // Show loading state
+        storyDetailContainer.innerHTML = '<div class="loading">Loading story details...</div>';
+        storyModal.style.display = 'block';
+        
+        // Fetch post details
+        const post = await API.posts.getPostById(postId);
+        
+        // Format date
+        const date = new Date(post.date).toLocaleDateString();
+        
+        // Create tags HTML
+        const tagsHtml = post.tags && post.tags.length > 0
+          ? `<div class="story-detail-tags">${post.tags.map(tag => `<span class="tag">${tag}</span>`).join('')}</div>`
+          : '';
+        
+        // Create comments HTML
+        const commentsHtml = post.comments && post.comments.length > 0
+          ? post.comments.map(comment => `
+              <div class="comment">
+                <div class="comment-author">${comment.author}</div>
+                <div class="comment-text">${comment.text}</div>
+                <div class="comment-date">${new Date(comment.date).toLocaleDateString()}</div>
+              </div>
+            `).join('')
+          : '<div class="no-comments">No comments yet</div>';
+        
+        // Display post details
+        storyDetailContainer.innerHTML = `
+          <div class="story-detail-container">
+            <img src="${post.image}" alt="${post.title}" class="story-detail-image">
+            <div class="story-detail-content">
+              <h2 class="story-detail-title">${post.title}</h2>
+              <div class="story-detail-meta">
+                <div class="story-detail-author">By ${post.author}</div>
+                <div class="story-detail-date">${date}</div>
+                <div class="story-detail-neighborhood">${post.neighborhood}</div>
+              </div>
+              <div class="story-detail-text">${post.description}</div>
+              ${tagsHtml}
+              <div class="story-detail-actions">
+                <button class="btn-secondary like-btn" data-id="${post.id}">
+                  <i class="fas fa-heart"></i> Like (${post.likes || 0})
+                </button>
+              </div>
+              <div class="comments-section">
+                <h3>Comments (${post.comments ? post.comments.length : 0})</h3>
+                <div class="comments-list">
+                  ${commentsHtml}
+                </div>
+                <div class="add-comment">
+                  <textarea id="comment-text" placeholder="Add a comment..."></textarea>
+                  <button class="btn-primary" id="submit-comment" data-id="${post.id}">Post Comment</button>
+                </div>
+              </div>
+            </div>
+          </div>
+        `;
+        
+        // Add event listener for like button
+        document.querySelector('.story-detail-actions .like-btn').addEventListener('click', async (e) => {
+          const postId = e.target.closest('.like-btn').dataset.id;
+          try {
+            const result = await API.posts.likePost(postId);
+            e.target.closest('.like-btn').innerHTML = `<i class="fas fa-heart"></i> Like (${result.likes})`;
+            
+            // Refresh stories
+            loadStoriesByLocation();
+          } catch (error) {
+            alert('Error liking post: ' + error.message);
+          }
+        });
+        
+        // Add event listener for comment button
+        document.getElementById('submit-comment').addEventListener('click', async (e) => {
+          const postId = e.target.dataset.id;
+          const commentText = document.getElementById('comment-text').value.trim();
+          
+          if (!commentText) {
+            alert('Please enter a comment');
+            return;
+          }
+          
+          // Check if user is logged in
+          const token = localStorage.getItem('authToken');
+          if (!token) {
+            alert('Please login to comment');
+            loginModal.style.display = 'block';
+            return;
+          }
+          
+          try {
+            const result = await API.posts.addComment(postId, commentText);
+            
+            // Clear comment text
+            document.getElementById('comment-text').value = '';
+            
+            // Update comments list
+            const commentsList = document.querySelector('.comments-list');
+            commentsList.innerHTML = result.comments.map(comment => `
+              <div class="comment">
+                <div class="comment-author">${comment.author}</div>
+                <div class="comment-text">${comment.text}</div>
+                <div class="comment-date">${new Date(comment.date).toLocaleDateString()}</div>
+              </div>
+            `).join('');
+            
+            // Update comment count
+            document.querySelector('.comments-section h3').textContent = `Comments (${result.comments.length})`;
+            
+            // Refresh stories
+            loadStoriesByLocation();
+          } catch (error) {
+            alert('Error adding comment: ' + error.message);
+          }
+        });
+      } catch (error) {
+        console.error('Error opening story modal:', error);
+        storyDetailContainer.innerHTML = `<div class="error">Error loading story details: ${error.message}</div>`;
+      }
+    }
+    
+    // Event Listeners
+    
+    // Radius slider
+    radiusSlider.addEventListener('input', function() {
+      currentRadius = parseInt(this.value);
+      radiusValue.textContent = currentRadius;
+      
+      // Update circle radius
+      circle.setRadius(currentRadius * 1000);
+    });
+    
+    radiusSlider.addEventListener('change', function() {
+      // Load stories with new radius
+      loadStoriesByLocation();
+    });
+    
+    // Use current location button
+    useCurrentLocationBtn.addEventListener('click', function() {
+      if (navigator.geolocation) {
+        navigator.geolocation.getCurrentPosition(function(position) {
+          updateLocation(position.coords.latitude, position.coords.longitude);
+        }, function(error) {
+          alert('Error getting location: ' + error.message);
+        });
+      } else {
+        alert('Geolocation is not supported by this browser.');
+      }
+    });
+    
+    // Close buttons for modals
+    closeBtns.forEach(btn => {
+      btn.addEventListener('click', function() {
+        storyModal.style.display = 'none';
+        loginModal.style.display = 'none';
+      });
+    });
+    
+    // Close modals when clicking outside
+    window.addEventListener('click', function(e) {
+      if (e.target === storyModal) {
+        storyModal.style.display = 'none';
+      }
+      if (e.target === loginModal) {
+        loginModal.style.display = 'none';
+      }
+    });
+    
+    // Login button
+    loginBtn.addEventListener('click', function() {
+      loginModal.style.display = 'block';
+    });
+    
+    // Tab switching
+    const tabBtns = document.querySelectorAll('.tab-btn');
+    tabBtns.forEach(btn => {
+      btn.addEventListener('click', function() {
+        const tab = this.dataset.tab;
+        
+        // Remove active class from all buttons and tabs
+        document.querySelectorAll('.tab-btn').forEach(b => b.classList.remove('active'));
+        document.querySelectorAll('.tab-content').forEach(t => t.classList.remove('active'));
+        
+        // Add active class to current button and tab
+        this.classList.add('active');
+        document.getElementById(`${tab}-tab`).classList.add('active');
+      });
+    });
+    
+    // Login form
+    document.getElementById('login-form').addEventListener('submit', async function(e) {
+      e.preventDefault();
+      
+      const email = document.getElementById('login-email').value;
+      const password = document.getElementById('login-password').value;
+      
+      try {
+        const result = await API.auth.login({ email, password });
+        alert('Logged in successfully!');
+        loginModal.style.display = 'none';
+        updateLoginStatus(result.user);
+      } catch (error) {
+        alert('Login failed: ' + error.message);
+      }
+    });
+    
+    // Register form
+    document.getElementById('register-form').addEventListener('submit', async function(e) {
+      e.preventDefault();
+      
+      const username = document.getElementById('register-username').value;
+      const email = document.getElementById('register-email').value;
+      const password = document.getElementById('register-password').value;
+      
+      try {
+        const result = await API.auth.register({ username, email, password });
+        alert('Registered successfully!');
+        loginModal.style.display = 'none';
+        updateLoginStatus(result.user);
+      } catch (error) {
+        alert('Registration failed: ' + error.message);
+      }
+    });
+    
+    // Update login status
+    function updateLoginStatus(user) {
+      const loginBtn = document.getElementById('login-btn');
+      if (user) {
+        loginBtn.textContent = user.username;
+        loginBtn.href = 'profile.html';
+      } else {
+        loginBtn.textContent = 'Login';
+        loginBtn.href = '#';
+      }
+    }
+    
+    // Check if user is already logged in
+    async function checkLoginStatus() {
+      const token = localStorage.getItem('authToken');
+      if (token) {
+        try {
+          const user = await API.auth.getCurrentUser();
+          updateLoginStatus(user);
+        } catch (error) {
+          console.error('Error checking login status:', error);
+          localStorage.removeItem('authToken');
+        }
+      }
+    }
+    
+    // Initialize map on page load
+    document.addEventListener('DOMContentLoaded', initMap);
+  </script>
+</body>
+</html>
